@@ -1,0 +1,6 @@
+step,rows
+0. Raw rows (both sheets),1067371
+1. Remove exact duplicates,1033036
+"2. Remove non-product codes (postage, fees, tests...)",1027213
+3. Remove zero/negative unit price,1021252
+4-5. Keep sales (qty>0) and returns (C-invoices),1021252
