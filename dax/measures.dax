@@ -1,0 +1,165 @@
+// =====================================================================
+// Online Retail II - DAX measures
+// Create a measure table (or put them on FactSales) and add each one with "New measure".
+// Display folders in brackets are suggestions to keep the model tidy.
+// =====================================================================
+
+// ---------- [Sales] ----------
+
+Net Revenue =
+SUM ( FactSales[Revenue] )
+// Sales minus returns. Format: Currency £, 0 decimals.
+
+Gross Sales =
+CALCULATE ( SUM ( FactSales[Revenue] ), FactSales[LineType] = "Sale" )
+
+Returns Value =
+- CALCULATE ( SUM ( FactSales[Revenue] ), FactSales[LineType] = "Return" )
+// Shown as a positive number.
+
+Return Rate % =
+DIVIDE ( [Returns Value], [Gross Sales] )
+// Format: Percentage, 1 decimal.
+
+Orders =
+CALCULATE ( DISTINCTCOUNT ( FactSales[Invoice] ), FactSales[LineType] = "Sale" )
+
+Average Order Value =
+DIVIDE ( [Gross Sales], [Orders] )
+
+Units Sold =
+CALCULATE ( SUM ( FactSales[Quantity] ), FactSales[LineType] = "Sale" )
+
+Units per Order =
+DIVIDE ( [Units Sold], [Orders] )
+
+// ---------- [Time intelligence] ----------
+// Requires DimDate marked as the date table (Date column) and the relationship
+// FactSales[DateKey] -> DimDate[DateKey].
+// PY measures compare the same dates one year earlier (see note under Net Revenue PY).
+
+Net Revenue PY =
+VAR StartDate = MIN ( DimDate[Date] )
+VAR EndDate   = MAX ( DimDate[Date] )
+RETURN
+    CALCULATE (
+        [Net Revenue],
+        REMOVEFILTERS ( DimDate ),
+        DimDate[Date] >= EDATE ( StartDate, -12 ),
+        DimDate[Date] <= EDATE ( EndDate, -12 )
+    )
+// Like-for-like: the same dates one year earlier.
+// SAMEPERIODLASTYEAR was not used because the data ends on 9 Dec 2011: it treated
+// December 2011 as a full month and compared 2011 with all of 2010 (-1.3% instead of +2.7%).
+
+Net Revenue YoY % =
+DIVIDE ( [Net Revenue] - [Net Revenue PY], [Net Revenue PY] )
+
+Net Revenue YTD =
+TOTALYTD ( [Net Revenue], DimDate[Date] )
+
+Orders PY =
+VAR StartDate = MIN ( DimDate[Date] )
+VAR EndDate   = MAX ( DimDate[Date] )
+RETURN
+    CALCULATE (
+        [Orders],
+        REMOVEFILTERS ( DimDate ),
+        DimDate[Date] >= EDATE ( StartDate, -12 ),
+        DimDate[Date] <= EDATE ( EndDate, -12 )
+    )
+
+Orders YoY % =
+DIVIDE ( [Orders] - [Orders PY], [Orders PY] )
+
+// ---------- [Customers] ----------
+
+Active Customers =
+CALCULATE (
+    DISTINCTCOUNT ( FactSales[CustomerKey] ),
+    FactSales[LineType] = "Sale",
+    FactSales[CustomerKey] <> 0
+)
+// Registered customers who bought in the selected period (guests excluded).
+
+Revenue per Customer =
+DIVIDE ( CALCULATE ( [Gross Sales], FactSales[CustomerKey] <> 0 ), [Active Customers] )
+
+Orders per Customer =
+DIVIDE ( CALCULATE ( [Orders], FactSales[CustomerKey] <> 0 ), [Active Customers] )
+
+Guest Revenue Share % =
+DIVIDE ( CALCULATE ( [Gross Sales], FactSales[CustomerKey] = 0 ), [Gross Sales] )
+
+New Customers =
+VAR StartDate = MIN ( DimDate[Date] )
+VAR EndDate   = MAX ( DimDate[Date] )
+RETURN
+    COUNTROWS (
+        FILTER (
+            DimCustomer,
+            DimCustomer[CustomerType] = "Registered"
+                && DimCustomer[FirstPurchaseDate] >= StartDate
+                && DimCustomer[FirstPurchaseDate] <= EndDate
+        )
+    )
+// Customers whose first purchase falls in the selected period.
+// Note: December 2009 counts every existing customer as "new" because the data starts there.
+
+Returning Customers =
+[Active Customers] - [New Customers]
+
+Repeat Customer Rate % =
+DIVIDE (
+    COUNTROWS ( FILTER ( DimCustomer, DimCustomer[Orders] >= 2 ) ),
+    COUNTROWS ( FILTER ( DimCustomer, DimCustomer[Orders] >= 1 ) )
+)
+// Share of registered customers with 2+ orders over the whole history.
+
+Segment Customers =
+COUNTROWS ( FILTER ( DimCustomer, DimCustomer[CustomerType] = "Registered" ) )
+
+Segment Revenue Share % =
+DIVIDE (
+    [Gross Sales],
+    CALCULATE ( [Gross Sales], REMOVEFILTERS ( DimCustomer[Segment] ), FactSales[CustomerKey] <> 0 )
+)
+// Use with DimCustomer[Segment] on rows.
+
+// ---------- [Cohorts] ----------
+// Matrix: Rows = DimCustomer[CohortMonth], Columns = FactSales[CohortIndex] (filter 0-12),
+// Values = Retention %. Add a background-colour scale (conditional formatting).
+
+Cohort Size =
+CALCULATE (
+    [Active Customers],
+    REMOVEFILTERS ( FactSales[CohortIndex] ),
+    FactSales[CohortIndex] = 0,
+    REMOVEFILTERS ( DimDate )
+)
+
+Cohort Active Customers =
+CALCULATE ( [Active Customers], REMOVEFILTERS ( DimDate ) )
+
+Retention % =
+DIVIDE ( [Cohort Active Customers], [Cohort Size] )
+
+// ---------- [Products] ----------
+
+Product Return Rate % =
+[Return Rate %]
+// Same logic; put it next to DimProduct[ProductName] to find problem products.
+
+Revenue Share of Total % =
+DIVIDE ( [Net Revenue], CALCULATE ( [Net Revenue], REMOVEFILTERS ( DimProduct ) ) )
+
+// ---------- [Labels for cards] ----------
+
+Revenue vs PY Label =
+VAR Change = [Net Revenue YoY %]
+RETURN
+    IF (
+        ISBLANK ( Change ),
+        "No prior-year data",
+        FORMAT ( Change, "+0.0%;-0.0%" ) & " vs same period last year"
+    )
