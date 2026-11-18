@@ -51,16 +51,33 @@ Star schema with one fact table and four dimensions, plus a standalone market-ba
 
 ## Key findings
 
-<!-- Write these yourself, in your own words, from your report. 3-5 bullets, each with a number and a "so what". -->
-- 
-- 
-- 
+### Sales overview
+- Revenue peaks every November ahead of Christmas.
+- Thursday is the busiest day; 78% of orders are placed between 10:00 and 16:00.
+- The UK is 85% of revenue; Ireland and the Netherlands lead internationally.
+
+### Customers
+- Champions: 25% of customers generate 69% of revenue.
+- At Risk: 830 customers worth £1.6M, on average about a year since their last order.
+- Growth comes mainly from returning customers.
+
+### Cohorts
+- About 1 in 5 new customers (20%) orders again in the month after their first purchase. In each of the following 12 months, between 15% and 25% of them place an order. There's no sharp drop-off, which points to a loyal core of customers.
+- Customers acquired in the holiday season are the least likely to return. In December 2010, month-1 retention was only 9%, and November cohorts were also below average. This suggests that people who shop for gifts in the holiday season don't usually come back.
+- In 2011 there was a clear decrease in new customer acquisition. Monthly cohorts went from 250–440 customers in early 2010 to about 100–200 in 2011.
+
+### Products
+- Two-thirds of revenue comes from items priced £1–5
+- Revenue is spread widely: the top 15 of 4,701 products = only 9%
+- Data quality: two bulk-order errors = 34% of returns value
+- Strong pairs, e.g. the Jumbo Bag colours are bought together (lift ~6)
 
 ## Recommendations
 
-<!-- 2-3 concrete actions for a marketing or commercial team, based on the findings above. -->
-- 
-- 
+- A win-back campaign aimed at the At Risk group,
+- A follow-up offer to holiday-season first-time buyers,
+- Bundles based on the products bought together.
+
 
 ## Limitations
 
